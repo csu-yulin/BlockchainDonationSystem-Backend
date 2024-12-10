@@ -5,7 +5,7 @@
 
 
 <p align="center">
-  <img src="https://img.shields.io/badge/License-MIT-brightgreen.svg" alt="License">
+  <img src="https://img.shields.io/badge/License-GPL%20v3-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Language-Java-007396.svg" alt="Language">
   <img src="https://img.shields.io/badge/Framework-Spring-brightblue" alt="Framework">
 </p>
