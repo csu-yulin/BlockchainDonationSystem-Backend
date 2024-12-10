@@ -1,10 +1,8 @@
----
-
 # 🚀 **BlockchainDonationSystem**  
 > 基于区块链技术的公益捐赠透明化管理系统  
 > 提升公益捐赠流程透明性、安全性，构建可信任的捐赠生态。
 
----
+
 
 <p align="center">
   <img src="https://img.shields.io/badge/License-MIT-brightgreen.svg" alt="License">
