@@ -2,18 +2,34 @@ server:
   port: 3450
 
 spring:
+  # 应用环境
+  profiles:
+    active: dev
+  # 数据源配置
   datasource:
-    url: jdbc:mysql://rm-f8zd1y18vy75i3v30vo.mysql.rds.aliyuncs.com:3306/bds?useSSL=false&useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
-    username: yulin
-    password: Lp20000930
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      # 连接池的最小空闲连接数
+      minimum-idle: 10
+      # 连接池的最大连接数
+      maximum-pool-size: 50
+      # 连接空闲时间，超过该时间的空闲连接将被释放
+      idle-timeout: 30000
+      # 数据库连接的最大生命周期
+      max-lifetime: 1800000
+      # 每次从连接池中获取连接的最大等待时间
+      connection-timeout: 20000
+      # 测试连接是否有效的查询语句
   # redis配置
   redis:
-    host: 113.45.133.84
+    host: ${REDIS_HOST}
     # Redis服务器连接端口
-    port: 6379
+    port: ${REDIS_PORT}
     # Redis服务器连接密码（默认为空）
-    password: jntff526
+    password: ${REDIS_PASSWORD}
     # 连接超时时间
     timeout: 10s
     lettuce:
@@ -40,3 +56,13 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
 
+aliyun:
+  sms:
+    accessKeyId: ${ALIYUN_SMS_ACCESS_KEY_ID}
+    accessKeySecret: ${ALIYUN_SMS_ACCESS_KEY_SECRET}
+    signName: ${ALIYUN_SMS_SIGN_NAME}
+    templateCode: ${ALIYUN_SMS_TEMPLATE_CODE}
+
+logging:
+  level:
+    root: info

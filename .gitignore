@@ -1,14 +1,8 @@
 # Compiled class file
 *.class
 
-# Log file
+# Log files
 *.log
-
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
 
 # Package Files #
 *.jar
@@ -19,6 +13,40 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# Virtual machine crash logs
 hs_err_pid*
 replay_pid*
+
+# Maven target directory
+/bds-user-service/target/
+
+# IntelliJ IDEA project files
+/.idea/
+/*.iml
+
+# Eclipse project files
+/.settings/
+/.classpath
+/.project
+
+# VS Code project files
+/.vscode/
+
+# Spring Boot devtools
+.spring-boot-devtools.properties
+
+# Local application configuration
+/bds-user-service/src/main/resources/application-dev.yaml
+
+# SQL schema file
+/sql/*.sql
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Temporary and backup files
+*.tmp
+*.bak
+*.swp
+*.swo

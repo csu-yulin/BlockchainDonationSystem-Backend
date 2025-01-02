@@ -1,5 +1,6 @@
 package csu.yulin.common;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import csu.yulin.enums.ResultCode;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,6 +13,7 @@ import lombok.Data;
  */
 @Data
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL) // 排除 null 值字段
 public class CommonResponse<T> {
     // 状态码
     private Integer code;

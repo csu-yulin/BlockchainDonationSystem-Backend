@@ -11,4 +11,8 @@ import csu.yulin.model.entity.User;
  */
 public interface IUserService extends IService<User> {
 
+    /**
+     * 检查用户是否存在
+     */
+    boolean isUserExist(String phoneNumber);
 }
