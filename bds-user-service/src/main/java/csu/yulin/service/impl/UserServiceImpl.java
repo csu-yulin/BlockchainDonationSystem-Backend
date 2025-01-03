@@ -20,8 +20,26 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
      * 检查用户是否存在
      */
     @Override
-    public boolean isUserExist(String phoneNumber) {
+    public boolean isUserExistByPhoneNumber(String phoneNumber) {
         return count(new LambdaQueryWrapper<User>()
                 .eq(User::getPhoneNumber, phoneNumber)) > 0;
+    }
+
+    /**
+     * 检查用户是否存在
+     */
+    @Override
+    public boolean isUserExistById(Long userId) {
+        return count(new LambdaQueryWrapper<User>()
+                .eq(User::getUserId, userId)) > 0;
+    }
+
+    /**
+     * 根据手机号查询用户信息
+     */
+    @Override
+    public User getUserByPhoneNumber(String phoneNumber) {
+        return getOne(new LambdaQueryWrapper<User>()
+                .eq(User::getPhoneNumber, phoneNumber));
     }
 }

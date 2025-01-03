@@ -50,16 +50,6 @@ public class UserVO implements Serializable {
     private String userBio;
 
     /**
-     * 用户真实姓名
-     */
-    private String userRealName;
-
-    /**
-     * 用户身份证号
-     */
-    private String idCardNumber;
-
-    /**
      * 用户银行账户信息
      */
     private String userBankAccount;

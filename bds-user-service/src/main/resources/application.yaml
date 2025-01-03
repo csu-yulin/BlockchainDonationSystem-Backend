@@ -63,6 +63,9 @@ aliyun:
     signName: ${ALIYUN_SMS_SIGN_NAME}
     templateCode: ${ALIYUN_SMS_TEMPLATE_CODE}
 
+identity-verification:
+  app-code: ${IDENTITY_VERIFICATION_APP_CODE}
+
 logging:
   level:
     root: info

@@ -19,7 +19,7 @@ public class ContentTypeFixInterceptor implements ClientHttpRequestInterceptor {
 
     @Override
     public @NotNull ClientHttpResponse intercept(@NotNull HttpRequest request,
-                                                 byte @NotNull [] body,
+                                                 @NotNull byte[] body,
                                                  ClientHttpRequestExecution execution) throws IOException {
         ClientHttpResponse response = execution.execute(request, body);
 

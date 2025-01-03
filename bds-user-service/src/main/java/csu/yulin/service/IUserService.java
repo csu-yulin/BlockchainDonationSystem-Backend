@@ -14,5 +14,15 @@ public interface IUserService extends IService<User> {
     /**
      * 检查用户是否存在
      */
-    boolean isUserExist(String phoneNumber);
+    boolean isUserExistByPhoneNumber(String phoneNumber);
+
+    /**
+     * 检查用户是否存在
+     */
+    boolean isUserExistById(Long userId);
+
+    /**
+     * 根据手机号查询用户信息
+     */
+    User getUserByPhoneNumber(String phoneNumber);
 }

@@ -18,6 +18,11 @@ public class UserDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
+     * 用户ID，主键
+     */
+    private Long userId;
+
+    /**
      * 用户密码，存储加密值
      */
     private String password;
@@ -31,4 +36,14 @@ public class UserDTO implements Serializable {
      * 验证码
      */
     private String code;
+
+    /**
+     * 用户真实姓名
+     */
+    private String userRealName;
+
+    /**
+     * 用户身份证号
+     */
+    private String idCardNumber;
 }

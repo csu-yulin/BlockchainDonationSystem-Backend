@@ -3,12 +3,13 @@ package csu.yulin.controller;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.captcha.CaptchaUtil;
 import cn.hutool.captcha.LineCaptcha;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import csu.yulin.common.CommonResponse;
 import csu.yulin.constants.RedisKeyConstants;
 import csu.yulin.enums.ResultCode;
 import csu.yulin.enums.RoleEnum;
+import csu.yulin.enums.UserStatusEnum;
 import csu.yulin.model.convert.UserConverter;
 import csu.yulin.model.dto.UserDTO;
 import csu.yulin.model.entity.User;
@@ -20,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -42,11 +44,44 @@ public class UserController {
 
     private final AvatarUtil avatarUtil;
 
+    private final IdentityVerificationUtil identityVerificationUtil;
+
     @GetMapping("/test")
     public String test() {
         smsUtil.sendSms("15696389220");
         return "Hello, World!";
     }
+
+    /**
+     * 用户手机号和密码登录接口
+     */
+    @PostMapping("/login/phone")
+    public CommonResponse<UserVO> loginByPhone(@RequestBody UserDTO userDTO) {
+        // 校验手机号和密码是否为空
+        AssertUtil.hasText(userDTO.getPhoneNumber(), "手机号不能为空");
+        AssertUtil.hasText(userDTO.getPassword(), "密码不能为空");
+
+        // 根据手机号查询用户信息
+        User user = userService.getUserByPhoneNumber(userDTO.getPhoneNumber());
+        AssertUtil.notNull(user, ResultCode.NOT_FOUND, "用户不存在");
+
+        // 校验密码
+        boolean isPasswordMatch = MD5Util.encrypt(userDTO.getPassword()).equals(user.getPassword());
+        AssertUtil.isTrue(isPasswordMatch, ResultCode.UNAUTHORIZED, "密码错误");
+
+        // 校验用户状态
+        AssertUtil.isTrue("ACTIVE".equals(user.getStatus()), ResultCode.FORBIDDEN, "用户已被禁用，请联系管理员");
+
+        // 登录成功，生成会话
+        StpUtil.login(user.getUserId());
+        log.info("User logged in successfully: phoneNumber={}", userDTO.getPhoneNumber());
+
+        // 构造返回的用户信息
+        UserVO userVO = UserConverter.toVO(user);
+
+        return CommonResponse.success("登录成功", userVO);
+    }
+
 
     /**
      * 个体用户注册
@@ -65,7 +100,7 @@ public class UserController {
         redisUtil.delete(smsRedisKey);
 
         // 检查该个体用户是否已存在
-        boolean isUserExist = userService.isUserExist(userDTO.getPhoneNumber());
+        boolean isUserExist = userService.isUserExistByPhoneNumber(userDTO.getPhoneNumber());
         AssertUtil.isFalse(isUserExist, "用户已存在");
 
         // 保存用户
@@ -73,6 +108,8 @@ public class UserController {
         user.setPassword(MD5Util.encrypt(user.getPassword()));
         user.setAvatar(avatarUtil.getRandomAvatar());
         user.setRole(RoleEnum.INDIVIDUAL.getCode());
+        // 默认为未激活状态,因为需要进行身份认证
+        user.setStatus(UserStatusEnum.INACTIVE.getCode());
         boolean success = userService.save(user);
         AssertUtil.isTrue(success, ResultCode.INTERNAL_SERVER_ERROR, "用户创建失败");
 
@@ -145,91 +182,30 @@ public class UserController {
         return CommonResponse.success("短信验证码已发送", null);
     }
 
-
     /**
-     * 获取用户详情
-     *
-     * @param userId 用户ID
-     * @return 用户详细信息
+     * 身份认证接口
      */
-    @GetMapping("/{userId}")
-    public CommonResponse<User> getUserById(@PathVariable Long userId) {
-        User user = userService.getById(userId);
-        AssertUtil.notNull(user, ResultCode.NOT_FOUND, "用户不存在");
-        return CommonResponse.success(user);
-    }
+    @PostMapping("/individualVerify")
+    public CommonResponse<String> verifyIdentity(@RequestBody UserDTO userDTO) throws IOException {
+        AssertUtil.notNull(userDTO.getUserId(), "用户ID不能为空");
+        AssertUtil.hasText(userDTO.getUserRealName(), "真实姓名不能为空");
+        AssertUtil.hasText(userDTO.getIdCardNumber(), "身份证号不能为空");
 
-    /**
-     * 分页查询用户列表
-     *
-     * @param page 页码
-     * @param size 每页大小
-     * @return 分页用户列表
-     */
-    @GetMapping
-    public CommonResponse<Page<User>> listUsers(
-            @RequestParam(defaultValue = "1") long page,
-            @RequestParam(defaultValue = "10") long size) {
-        Page<User> userPage = userService.page(new Page<>(page, size));
-        return CommonResponse.success(userPage);
-    }
+        String response = identityVerificationUtil.verifyIdentity(userDTO.getUserRealName(),
+                userDTO.getIdCardNumber());
+        JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
+        String respCode = jsonObject.get("respCode").getAsString();
+        String respMessage = jsonObject.get("respMessage").getAsString();
 
-    /**
-     * 更新用户信息
-     *
-     * @param userId 用户ID
-     * @param user   更新的用户信息
-     * @return 更新后的用户信息
-     */
-    @PutMapping("/{userId}")
-    public CommonResponse<User> updateUser(@PathVariable Long userId, @RequestBody User user) {
-        // 检查用户是否存在
-        User existingUser = userService.getById(userId);
-        AssertUtil.notNull(existingUser, ResultCode.NOT_FOUND, "用户不存在");
+        if ("0000".equals(respCode)) {
+            AssertUtil.isTrue(userService.isUserExistById(userDTO.getUserId()), "用户不存在");
+            User user = UserConverter.toEntity(userDTO);
+            user.setStatus(UserStatusEnum.ACTIVE.getCode());
+            userService.updateById(user);
 
-        // 设置用户ID
-        user.setUserId(userId);
-
-        // 更新用户信息
-        boolean success = userService.updateById(user);
-        AssertUtil.isTrue(success, ResultCode.INTERNAL_SERVER_ERROR, "用户更新失败");
-
-        return CommonResponse.success(user);
-    }
-
-    /**
-     * 删除用户
-     *
-     * @param userId 用户ID
-     * @return 删除结果
-     */
-    @DeleteMapping("/{userId}")
-    public CommonResponse<Void> deleteUser(@PathVariable Long userId) {
-        // 检查用户是否存在
-        User existingUser = userService.getById(userId);
-        AssertUtil.notNull(existingUser, ResultCode.NOT_FOUND, "用户不存在");
-
-        // 删除用户
-        boolean success = userService.removeById(userId);
-        AssertUtil.isTrue(success, ResultCode.INTERNAL_SERVER_ERROR, "用户删除失败");
-
-        return CommonResponse.success(null);
-    }
-
-    /**
-     * 根据用户名查询用户
-     *
-     * @param username 用户名
-     * @return 用户信息
-     */
-    @GetMapping("/search")
-    public CommonResponse<User> getUserByUsername(@RequestParam String username) {
-        AssertUtil.hasText(username, "用户名不能为空");
-
-        User user = userService.getOne(new LambdaQueryWrapper<User>()
-                .eq(User::getUsername, username));
-        AssertUtil.notNull(user, ResultCode.NOT_FOUND, "用户不存在");
-
-        return CommonResponse.success(user);
+            return CommonResponse.success("身份认证成功");
+        } else {
+            return CommonResponse.error(ResultCode.BAD_REQUEST, "身份认证失败：" + respMessage);
+        }
     }
 }
