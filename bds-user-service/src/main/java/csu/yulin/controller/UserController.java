@@ -3,16 +3,22 @@ package csu.yulin.controller;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.captcha.CaptchaUtil;
 import cn.hutool.captcha.LineCaptcha;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import csu.yulin.common.CommonResponse;
+import csu.yulin.common.PageDTO;
 import csu.yulin.constants.RedisKeyConstants;
+import csu.yulin.enums.CertificationStatusEnum;
 import csu.yulin.enums.ResultCode;
 import csu.yulin.enums.RoleEnum;
 import csu.yulin.enums.UserStatusEnum;
+import csu.yulin.exception.BusinessException;
 import csu.yulin.model.convert.UserConverter;
+import csu.yulin.model.dto.OrganizationDTO;
 import csu.yulin.model.dto.UserDTO;
 import csu.yulin.model.entity.User;
+import csu.yulin.model.vo.OrganizationVO;
 import csu.yulin.model.vo.UserVO;
 import csu.yulin.service.IUserService;
 import csu.yulin.util.*;
@@ -20,8 +26,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -46,17 +54,73 @@ public class UserController {
 
     private final IdentityVerificationUtil identityVerificationUtil;
 
-    @GetMapping("/test")
-    public String test() {
-        smsUtil.sendSms("15696389220");
-        return "Hello, World!";
+    private final OSSUtil ossUtil;
+
+    /**
+     * 上传用户头像
+     */
+    @PostMapping("/{userId}/avatar")
+    public CommonResponse<String> uploadAvatar(@PathVariable Long userId, @RequestParam("avatar") MultipartFile file) {
+        // 检查用户是否存在
+        User user = userService.getById(userId);
+        AssertUtil.notNull(user, "用户不存在");
+
+        // 获取当前头像信息
+        String oldAvatarUrl = user.getAvatar();
+
+        // 删除旧头像
+        if (StringUtils.hasText(oldAvatarUrl)) {
+            try {
+                String oldAvatarName = extractFileNameFromUrl(oldAvatarUrl);
+                ossUtil.deleteAvatar(oldAvatarName);
+            } catch (Exception e) {
+                // 记录日志但不阻止流程
+                log.warn("旧头像删除失败或不存在: {}", e.getMessage());
+            }
+        }
+
+        // 上传新头像
+        try {
+            String newFileName = generateUniqueFileName(Objects.requireNonNull(file.getOriginalFilename()));
+            String newAvatarUrl = ossUtil.uploadAvatar(newFileName, file.getInputStream());
+
+            // 更新用户头像信息
+            user.setAvatar(newAvatarUrl);
+            boolean success = userService.updateById(user);
+            AssertUtil.isTrue(success, "更新用户头像失败");
+
+            return CommonResponse.success("头像上传成功", newAvatarUrl);
+        } catch (IOException e) {
+            throw new BusinessException(ResultCode.INTERNAL_SERVER_ERROR, "头像上传失败");
+        }
+    }
+
+    /**
+     * 从头像 URL 中提取文件名
+     *
+     * @param url 文件 URL
+     * @return 文件名
+     */
+    private String extractFileNameFromUrl(String url) {
+        return url.substring(url.lastIndexOf("/") + 1);
+    }
+
+    /**
+     * 生成唯一文件名
+     *
+     * @param originalFileName 原始文件名
+     * @return 唯一文件名
+     */
+    private String generateUniqueFileName(String originalFileName) {
+        String fileExtension = originalFileName.substring(originalFileName.lastIndexOf("."));
+        return SnowflakeUtil.generateId() + fileExtension;
     }
 
     /**
      * 用户手机号和密码登录接口
      */
     @PostMapping("/login/phone")
-    public CommonResponse<UserVO> loginByPhone(@RequestBody UserDTO userDTO) {
+    public CommonResponse<Object> loginByPhone(@RequestBody UserDTO userDTO) {
         // 校验手机号和密码是否为空
         AssertUtil.hasText(userDTO.getPhoneNumber(), "手机号不能为空");
         AssertUtil.hasText(userDTO.getPassword(), "密码不能为空");
@@ -77,9 +141,13 @@ public class UserController {
         log.info("User logged in successfully: phoneNumber={}", userDTO.getPhoneNumber());
 
         // 构造返回的用户信息
-        UserVO userVO = UserConverter.toVO(user);
-
-        return CommonResponse.success("登录成功", userVO);
+        Object result;
+        if (RoleEnum.ORGANIZATION.getCode().equals(user.getRole())) {
+            result = UserConverter.toOrganizationVO(user);
+        } else {
+            result = UserConverter.toUserVO(user);
+        }
+        return CommonResponse.success("登录成功", result);
     }
 
 
@@ -116,9 +184,46 @@ public class UserController {
         log.info("User registered successfully: phoneNumber={}, role={}", userDTO.getPhoneNumber(),
                 RoleEnum.INDIVIDUAL.getCode());
         StpUtil.login(user.getUserId());
-        UserVO vo = UserConverter.toVO(userService.getById(user.getUserId()));
+        UserVO vo = UserConverter.toUserVO(userService.getById(user.getUserId()));
         return CommonResponse.success(vo);
     }
+
+    /**
+     * 公益组织用户注册接口
+     */
+    @PostMapping("/register/organization")
+    public CommonResponse<OrganizationVO> registerOrganization(@RequestBody OrganizationDTO orgDTO) {
+        AssertUtil.hasText(orgDTO.getOrgName(), "组织名称不能为空");
+        AssertUtil.hasText(orgDTO.getOrgLicenseNumber(), "组织注册号或营业执照编号不能为空");
+        AssertUtil.hasText(orgDTO.getOrgBankAccount(), "组织银行账户信息不能为空");
+        AssertUtil.hasText(orgDTO.getContactPersonName(), "联系人姓名不能为空");
+        AssertUtil.hasText(orgDTO.getPhoneNumber(), "联系人手机号不能为空");
+        AssertUtil.hasText(orgDTO.getEmail(), "组织邮箱地址不能为空");
+        AssertUtil.hasText(orgDTO.getPassword(), "密码不能为空");
+
+        // 检查手机号是否已被注册
+        boolean isPhoneExist = userService.isUserExistByPhoneNumber(orgDTO.getPhoneNumber());
+        AssertUtil.isFalse(isPhoneExist, "该手机号已被注册");
+
+        // 保存组织用户信息
+        User user = UserConverter.toEntity(orgDTO);
+        user.setPassword(MD5Util.encrypt(user.getPassword()));
+        user.setAvatar(avatarUtil.getRandomAvatar());
+        user.setRole(RoleEnum.ORGANIZATION.getCode());
+        // 默认待认证状态
+        user.setCertificationStatus(CertificationStatusEnum.PENDING.getCode());
+
+        boolean success = userService.save(user);
+        AssertUtil.isTrue(success, ResultCode.INTERNAL_SERVER_ERROR, "组织用户注册失败");
+        StpUtil.login(user.getUserId());
+        log.info("Organization registered successfully: orgName={}, phoneNumber={}",
+                orgDTO.getOrgName(), orgDTO.getPhoneNumber());
+
+        // 返回用户 VO 数据
+        OrganizationVO vo = UserConverter.toOrganizationVO(userService.getById(user.getUserId()));
+        return CommonResponse.success(vo);
+    }
+
 
     /**
      * 获取图形验证码
@@ -208,4 +313,127 @@ public class UserController {
             return CommonResponse.error(ResultCode.BAD_REQUEST, "身份认证失败：" + respMessage);
         }
     }
+
+    /**
+     * 用户登出接口
+     */
+    @PostMapping("/logout")
+    public CommonResponse<Void> logout() {
+        // 获取当前登录用户ID
+        Long userId = StpUtil.getLoginIdAsLong();
+        log.info("User logging out: userId={}", userId);
+
+        // 注销会话
+        StpUtil.logout();
+
+        // 返回登出成功响应
+        return CommonResponse.success("登出成功", null);
+    }
+
+    // TODO: 不提供给管理员更新、增加、删除，也不可以删除用户，只提供给用户更新自己的信息
+    // TODO: 管理员可以对用户的状态进行管理
+    // TODO: 不提供注销账号功能
+    // TODO: 后期在网关添加拦截器，对用户的请求进行拦截，要求用户登录后才能访问
+
+    /**
+     * 查询单个用户信息
+     */
+    @GetMapping("/{userId}")
+    public CommonResponse<Object> getUserById(@PathVariable Long userId) {
+        // 校验用户 ID 是否有效
+        AssertUtil.notNull(userId, "用户 ID 不能为空");
+
+        // 获取当前登录用户的 ID 和角色
+        Long currentUserId = StpUtil.getLoginIdAsLong();
+        User currentUser = userService.getById(currentUserId);
+        AssertUtil.notNull(currentUser, "当前登录用户信息不存在");
+
+        // 检查权限：只能是用户自己或管理员
+        boolean isAdmin = RoleEnum.ADMIN.getCode().equals(currentUser.getRole());
+        boolean isSelf = currentUserId.equals(userId);
+        AssertUtil.isTrue(isAdmin || isSelf, ResultCode.FORBIDDEN, "无权限查看该用户信息");
+
+        // 查询用户信息
+        User user = userService.getById(userId);
+        AssertUtil.notNull(user, ResultCode.NOT_FOUND, "用户不存在");
+
+        // 根据用户角色构造返回信息
+        Object result;
+        if (RoleEnum.ORGANIZATION.getCode().equals(user.getRole())) {
+            result = UserConverter.toOrganizationVO(user);
+        } else {
+            result = UserConverter.toUserVO(user);
+        }
+
+        // 返回用户信息
+        return CommonResponse.success("用户信息查询成功", result);
+    }
+
+    /**
+     * 分页查询用户列表
+     */
+    @PostMapping("/users")
+    public CommonResponse<Page<User>> listUsers(@RequestBody PageDTO pageDTO) {
+        AssertUtil.isTrue(StpUtil.hasRole("ADMIN"), "无权限访问");
+        log.info("Querying users by conditions: {}", pageDTO);
+        Page<User> userPage = userService.getUsersByConditions(pageDTO);
+        return CommonResponse.success(userPage);
+    }
+
+    /**
+     * 更新个体用户信息
+     */
+    @PutMapping("/update/individual")
+    public CommonResponse<String> updateIndividualUser(@RequestBody UserDTO userDTO) {
+        // 获取当前登录用户 ID
+        Long loggedInUserId = StpUtil.getLoginIdAsLong();
+
+        // 检查待更新用户是否存在
+        User targetUser = userService.getById(userDTO.getUserId());
+        AssertUtil.notNull(targetUser, "用户不存在");
+
+        // 确保待更新用户是个体用户
+        AssertUtil.isTrue(RoleEnum.INDIVIDUAL.getCode().equals(targetUser.getRole()), "待更新用户不是个体用户");
+
+        // 判断是否是用户自己或管理员
+        boolean isAdmin = RoleEnum.ADMIN.getCode().equals(userService.getById(loggedInUserId).getRole());
+        boolean isSelf = loggedInUserId.equals(userDTO.getUserId());
+        AssertUtil.isTrue(isAdmin || isSelf, "您无权限更新该用户的信息");
+
+        // 保存更新后的数据
+        User user = UserConverter.toEntity(userDTO);
+        boolean success = userService.updateById(user);
+        AssertUtil.isTrue(success, ResultCode.INTERNAL_SERVER_ERROR, "更新用户信息失败");
+
+        return CommonResponse.success("更新成功");
+    }
+
+    /**
+     * 更新公益组织信息
+     */
+    @PutMapping("/update/organization")
+    public CommonResponse<String> updateOrganization(@RequestBody OrganizationDTO organizationDTO) {
+        // 获取当前登录用户 ID
+        Long loggedInUserId = StpUtil.getLoginIdAsLong();
+
+        // 检查待更新用户是否存在
+        User targetUser = userService.getById(organizationDTO.getUserId());
+        AssertUtil.notNull(targetUser, "用户不存在");
+
+        // 确保待更新用户是公益组织
+        AssertUtil.isTrue(RoleEnum.ORGANIZATION.getCode().equals(targetUser.getRole()), "待更新用户不是公益组织");
+
+        // 判断是否是用户自己或管理员
+        boolean isAdmin = RoleEnum.ADMIN.getCode().equals(userService.getById(loggedInUserId).getRole());
+        boolean isSelf = loggedInUserId.equals(organizationDTO.getUserId());
+        AssertUtil.isTrue(isAdmin || isSelf, "您无权限更新该用户的信息");
+
+        // 保存更新后的数据
+        User user = UserConverter.toEntity(organizationDTO);
+        boolean success = userService.updateById(user);
+        AssertUtil.isTrue(success, ResultCode.INTERNAL_SERVER_ERROR, "更新公益组织信息失败");
+
+        return CommonResponse.success("更新成功");
+    }
+
 }

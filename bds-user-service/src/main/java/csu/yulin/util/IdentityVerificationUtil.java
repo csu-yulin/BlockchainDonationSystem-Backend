@@ -1,5 +1,6 @@
 package csu.yulin.util;
 
+import lombok.RequiredArgsConstructor;
 import okhttp3.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -13,9 +14,10 @@ import java.io.IOException;
  * @create 2025-01-03
  */
 @Component
+@RequiredArgsConstructor
 public class IdentityVerificationUtil {
     private static final String URL = "https://idenauthen.market.alicloudapi.com/idenAuthentication";
-    private final OkHttpClient client = new OkHttpClient();
+    private final OkHttpClient client;
     @Value("${identity-verification.app-code}")
     private String appCode;
 

@@ -1,7 +1,9 @@
 package csu.yulin.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import csu.yulin.common.PageDTO;
 import csu.yulin.mapper.UserMapper;
 import csu.yulin.model.entity.User;
 import csu.yulin.service.IUserService;
@@ -41,5 +43,26 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     public User getUserByPhoneNumber(String phoneNumber) {
         return getOne(new LambdaQueryWrapper<User>()
                 .eq(User::getPhoneNumber, phoneNumber));
+    }
+
+    /**
+     * 分页查询
+     */
+    @Override
+    public Page<User> getUsersByConditions(PageDTO pageDTO) {
+        // 构建分页对象
+        Page<User> page = new Page<>(pageDTO.getPage(), pageDTO.getSize());
+
+        // 构建查询条件
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        if (pageDTO.getStatus() != null) {
+            queryWrapper.eq(User::getStatus, pageDTO.getStatus());
+        }
+        if (pageDTO.getCertificationStatus() != null) {
+            queryWrapper.eq(User::getCertificationStatus, pageDTO.getCertificationStatus());
+        }
+
+        // 执行分页查询
+        return page(page, queryWrapper);
     }
 }

@@ -1,6 +1,8 @@
 package csu.yulin.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import csu.yulin.common.PageDTO;
 import csu.yulin.model.entity.User;
 
 /**
@@ -25,4 +27,9 @@ public interface IUserService extends IService<User> {
      * 根据手机号查询用户信息
      */
     User getUserByPhoneNumber(String phoneNumber);
+
+    /**
+     * 分页查询
+     */
+    Page<User> getUsersByConditions(PageDTO pageDTO);
 }

@@ -62,6 +62,11 @@ aliyun:
     accessKeySecret: ${ALIYUN_SMS_ACCESS_KEY_SECRET}
     signName: ${ALIYUN_SMS_SIGN_NAME}
     templateCode: ${ALIYUN_SMS_TEMPLATE_CODE}
+  oss:
+    endpoint: ${ALIYUN_OSS_ENDPOINT}
+    bucketName: ${ALIYUN_OSS_BUCKET_NAME}
+    directory: ${ALIYUN_OSS_DIRECTORY}
+
 
 identity-verification:
   app-code: ${IDENTITY_VERIFICATION_APP_CODE}
