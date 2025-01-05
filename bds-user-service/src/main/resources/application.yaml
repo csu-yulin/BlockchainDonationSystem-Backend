@@ -5,6 +5,16 @@ spring:
   # 应用环境
   profiles:
     active: dev
+  # 应用名称
+  application:
+    name: bds-user-service
+  # 微服务网关配置
+  cloud:
+    nacos:
+      discovery:
+        username: ${NACOS_USERNAME}
+        password: ${NACOS_PASSWORD}
+        server-addr: ${NACOS_SERVER_ADDR}
   # 数据源配置
   datasource:
     url: ${DB_URL}

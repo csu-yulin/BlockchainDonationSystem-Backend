@@ -19,6 +19,7 @@ replay_pid*
 
 # Maven target directory
 /bds-user-service/target/
+/bds-gateway-service/target/
 
 # IntelliJ IDEA project files
 /.idea/
@@ -37,6 +38,7 @@ replay_pid*
 
 # Local application configuration
 /bds-user-service/src/main/resources/application-dev.yaml
+/bds-gateway-service/src/main/resources/application-dev.yaml
 
 # SQL schema file
 /sql/*.sql
