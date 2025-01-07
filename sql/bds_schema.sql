@@ -133,3 +133,98 @@ VALUES ('john_doe', 'hashed_password_1', 'john.doe@example.com', '1234567890', '
         'Organization D', 'Purpose of Organization D', 'ORG99887', '1234987654',
         'PENDING', 'Waiting for admin approval', NULL, 'David Brown',
         NULL, NULL);
+
+-- 3. 创建 `project` 表
+CREATE TABLE IF NOT EXISTS project
+(
+    -- 基本信息
+    project_id          BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '项目ID，主键',
+    project_name        VARCHAR(255)               NOT NULL COMMENT '项目名称',
+    description         TEXT COMMENT '项目详细描述',
+    cover_image         VARCHAR(255) COMMENT '项目封面图片的URL',
+
+    -- 项目发起者相关
+    creator_id          BIGINT                     NOT NULL COMMENT '项目创建者的用户ID（关联user表）',
+    creator_role        ENUM ('INDIVIDUAL', 'ORG') NOT NULL COMMENT '项目创建者角色：个人或公益组织',
+    org_name            VARCHAR(255) COMMENT '若由公益组织发起，记录组织名称',
+    contact_person_name VARCHAR(255) COMMENT '项目联系人姓名',
+
+    -- 项目状态及审批相关
+    approval_status     ENUM ('PENDING', 'APPROVED', 'REJECTED')  DEFAULT 'PENDING' COMMENT '项目审批状态',
+    approval_notes      TEXT COMMENT '审批备注或原因',
+    verifier_id         BIGINT COMMENT '最后审核该项目的管理员ID（关联user表）',
+    status              ENUM ('ACTIVE', 'COMPLETED', 'CANCELLED') DEFAULT 'ACTIVE' COMMENT '项目状态：进行中、已完成、已取消',
+
+    -- 项目资金管理
+    target_amount       DECIMAL(15, 2)             NOT NULL COMMENT '目标募集金额',
+    raised_amount       DECIMAL(15, 2)                            DEFAULT 0 COMMENT '已募集金额',
+    bank_account        VARCHAR(255) COMMENT '用于接收捐款的银行账户',
+
+    -- 项目时间管理
+    start_date          DATE                       NOT NULL COMMENT '项目开始日期',
+    end_date            DATE COMMENT '项目结束日期（可为空，表示长期项目）',
+
+    -- 历史记录
+    donation_records    JSON COMMENT '项目的捐赠记录（JSON格式）',
+    activity_records    JSON COMMENT '项目相关的活动记录（如更新、公告等，JSON格式）',
+
+    -- 通用控制字段
+    is_deleted          BOOLEAN                                   DEFAULT FALSE COMMENT '逻辑删除标志：TRUE 表示已删除',
+    created_at          TIMESTAMP                                 DEFAULT CURRENT_TIMESTAMP COMMENT '项目创建时间',
+    updated_at          TIMESTAMP                                 DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '项目最后更新时间'
+) COMMENT '项目表';
+
+-- 4. 插入测试数据
+INSERT INTO project (project_name, description, cover_image, creator_id, creator_role,
+                     org_name, contact_person_name, approval_status, approval_notes, verifier_id,
+                     status, target_amount, raised_amount, bank_account, start_date, end_date,
+                     donation_records, activity_records, is_deleted, created_at, updated_at)
+VALUES ('助学计划', '帮助贫困地区学生完成学业', 'https://example.com/images/project1.jpg', 101, 'ORG',
+        '阳光公益', '李明', 'APPROVED', '项目内容符合资助标准', 201,
+        'ACTIVE', 100000.00, 50000.00, '6222020000001', '2024-01-01', '2024-12-31',
+        NULL, NULL, FALSE, NOW(), NOW()),
+
+       ('环保植树行动', '在荒漠化地区开展植树活动', 'https://example.com/images/project2.jpg', 102, 'INDIVIDUAL',
+        NULL, NULL, 'APPROVED', '审核通过', 202,
+        'ACTIVE', 50000.00, 20000.00, '6222020000002', '2024-03-01', NULL,
+        NULL, NULL, FALSE, NOW(), NOW()),
+
+       ('赈灾募捐', '为受灾地区提供紧急物资援助', 'https://example.com/images/project3.jpg', 103, 'ORG',
+        '希望之家', '张红', 'APPROVED', '资助方案明确', 201,
+        'ACTIVE', 200000.00, 150000.00, '6222020000003', '2024-01-15', '2024-06-30',
+        NULL, NULL, FALSE, NOW(), NOW()),
+
+       ('义诊活动', '组织医生为山区居民提供义诊服务', 'https://example.com/images/project4.jpg', 104, 'ORG',
+        '健康公益', '赵敏', 'PENDING', NULL, NULL,
+        'ACTIVE', 30000.00, 5000.00, '6222020000004', '2024-04-01', '2024-04-15',
+        NULL, NULL, FALSE, NOW(), NOW()),
+
+       ('社区图书馆建设', '为偏远社区建设小型图书馆', 'https://example.com/images/project5.jpg', 105, 'ORG',
+        '书香传递', '刘强', 'REJECTED', '不符合资助标准', 203,
+        'CANCELLED', 80000.00, 0.00, '6222020000005', '2024-02-01', NULL,
+        NULL, NULL, FALSE, NOW(), NOW()),
+
+       ('贫困户生活补助', '为农村贫困家庭提供生活补助', 'https://example.com/images/project6.jpg', 106, 'INDIVIDUAL',
+        NULL, NULL, 'APPROVED', '审核通过', 201,
+        'ACTIVE', 100000.00, 75000.00, '6222020000006', '2024-01-10', '2024-12-10',
+        NULL, NULL, FALSE, NOW(), NOW()),
+
+       ('无障碍设施改造', '为残疾人家庭改造无障碍设施', 'https://example.com/images/project7.jpg', 107, 'ORG',
+        '无障爱心', '孙杰', 'APPROVED', '支持方案完整', 202,
+        'COMPLETED', 40000.00, 40000.00, '6222020000007', '2023-11-01', '2023-12-31',
+        NULL, NULL, FALSE, NOW(), NOW()),
+
+       ('儿童营养餐计划', '为贫困儿童提供免费午餐', 'https://example.com/images/project8.jpg', 108, 'ORG',
+        '阳光公益', '李明', 'PENDING', NULL, NULL,
+        'ACTIVE', 120000.00, 30000.00, '6222020000008', '2024-05-01', NULL,
+        NULL, NULL, FALSE, NOW(), NOW()),
+
+       ('流浪动物收容', '建立流浪动物临时收容所', 'https://example.com/images/project9.jpg', 109, 'INDIVIDUAL',
+        NULL, NULL, 'APPROVED', '资助有效', 202,
+        'ACTIVE', 50000.00, 10000.00, '6222020000009', '2024-03-01', '2024-12-31',
+        NULL, NULL, FALSE, NOW(), NOW()),
+
+       ('乡村医疗设备升级', '帮助乡村医院购置医疗设备', 'https://example.com/images/project10.jpg', 110, 'ORG',
+        '健康公益', '赵敏', 'APPROVED', '资助充分合理', 203,
+        'ACTIVE', 150000.00, 60000.00, '6222020000010', '2024-02-01', '2024-10-31',
+        NULL, NULL, FALSE, NOW(), NOW());

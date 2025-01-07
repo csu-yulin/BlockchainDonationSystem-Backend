@@ -4,19 +4,24 @@ server:
     context-path: /hopechain
 
 spring:
-  # 应用环境
-  profiles:
-    active: dev
-  # 应用名称
   application:
-    name: bds-gateway-service
-  # 微服务网关配置
+    name: bds-gateway-service  # 服务名称
+  config:
+    import:
+      - nacos:common.yaml
+      - nacos:redis-config.yaml
   cloud:
     nacos:
       discovery:
+        server-addr: 113.45.133.84:8848
         username: ${NACOS_USERNAME}
         password: ${NACOS_PASSWORD}
-        server-addr: ${NACOS_SERVER_ADDR}
+      config:
+        file-extension: yaml
+        refresh-enabled: false
+        shared-configs:
+          - data-id: common.yaml
+          - data-id: redis-config.yaml
     gateway:
       discovery:
         locator:
@@ -42,27 +47,3 @@ spring:
     type: caffeine
     caffeine:
       spec: maximumSize=1000,expireAfterWrite=60s
-
-  # redis配置
-  redis:
-    host: ${REDIS_HOST}
-    # Redis服务器连接端口
-    port: ${REDIS_PORT}
-    # Redis服务器连接密码（默认为空）
-    password: ${REDIS_PASSWORD}
-    # 连接超时时间
-    timeout: 10s
-    lettuce:
-      pool:
-        # 连接池最大连接数
-        max-active: 200
-        # 连接池最大阻塞等待时间（使用负值表示没有限制）
-        max-wait: -1ms
-        # 连接池中的最大空闲连接
-        max-idle: 10
-        # 连接池中的最小空闲连接
-        min-idle: 0
-
-logging:
-  level:
-    root: info

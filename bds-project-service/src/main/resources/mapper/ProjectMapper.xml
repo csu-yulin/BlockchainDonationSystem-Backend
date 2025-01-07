@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="csu.yulin.project.mapper.ProjectMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="csu.yulin.model.entity.Project">
+        <id column="project_id" property="projectId"/>
+        <result column="project_name" property="projectName"/>
+        <result column="description" property="description"/>
+        <result column="cover_image" property="coverImage"/>
+        <result column="creator_id" property="creatorId"/>
+        <result column="creator_role" property="creatorRole"/>
+        <result column="org_name" property="orgName"/>
+        <result column="contact_person_name" property="contactPersonName"/>
+        <result column="approval_status" property="approvalStatus"/>
+        <result column="approval_notes" property="approvalNotes"/>
+        <result column="verifier_id" property="verifierId"/>
+        <result column="status" property="status"/>
+        <result column="target_amount" property="targetAmount"/>
+        <result column="raised_amount" property="raisedAmount"/>
+        <result column="bank_account" property="bankAccount"/>
+        <result column="start_date" property="startDate"/>
+        <result column="end_date" property="endDate"/>
+        <result column="donation_records" property="donationRecords"/>
+        <result column="activity_records" property="activityRecords"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        project_id
+        , project_name, description, cover_image, creator_id, creator_role, org_name, contact_person_name, approval_status, approval_notes, verifier_id, status, target_amount, raised_amount, bank_account, start_date, end_date, donation_records, activity_records, is_deleted, created_at, updated_at
+    </sql>
+
+</mapper>

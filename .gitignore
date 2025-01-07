@@ -20,6 +20,7 @@ replay_pid*
 # Maven target directory
 /bds-user-service/target/
 /bds-gateway-service/target/
+/bds-project-service/target/
 
 # IntelliJ IDEA project files
 /.idea/
@@ -35,10 +36,6 @@ replay_pid*
 
 # Spring Boot devtools
 .spring-boot-devtools.properties
-
-# Local application configuration
-/bds-user-service/src/main/resources/application-dev.yaml
-/bds-gateway-service/src/main/resources/application-dev.yaml
 
 # SQL schema file
 /sql/*.sql
