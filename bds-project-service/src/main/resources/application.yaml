@@ -14,7 +14,7 @@ spring:
     nacos:
       username: ${NACOS_USERNAME}
       password: ${NACOS_PASSWORD}
-      server-addr: 113.45.133.84:8848
+      server-addr: 47.120.70.160:8848
       config:
         file-extension: yaml
         refresh-enabled: false

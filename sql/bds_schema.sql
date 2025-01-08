@@ -150,14 +150,15 @@ CREATE TABLE IF NOT EXISTS project
     contact_person_name VARCHAR(255) COMMENT '项目联系人姓名',
 
     -- 项目状态及审批相关
-    approval_status     ENUM ('PENDING', 'APPROVED', 'REJECTED')  DEFAULT 'PENDING' COMMENT '项目审批状态',
+    approval_status     ENUM ('PENDING', 'APPROVED', 'REJECTED')            DEFAULT 'PENDING' COMMENT '项目审批状态',
     approval_notes      TEXT COMMENT '审批备注或原因',
     verifier_id         BIGINT COMMENT '最后审核该项目的管理员ID（关联user表）',
-    status              ENUM ('ACTIVE', 'COMPLETED', 'CANCELLED') DEFAULT 'ACTIVE' COMMENT '项目状态：进行中、已完成、已取消',
+    status              ENUM ('ACTIVE', 'COMPLETED', 'CANCELLED','EXPIRED') DEFAULT 'ACTIVE'
+        COMMENT '项目状态：进行中、已完成、已取消、已过期',
 
     -- 项目资金管理
     target_amount       DECIMAL(15, 2)             NOT NULL COMMENT '目标募集金额',
-    raised_amount       DECIMAL(15, 2)                            DEFAULT 0 COMMENT '已募集金额',
+    raised_amount       DECIMAL(15, 2)                                      DEFAULT 0 COMMENT '已募集金额',
     bank_account        VARCHAR(255) COMMENT '用于接收捐款的银行账户',
 
     -- 项目时间管理
@@ -169,9 +170,9 @@ CREATE TABLE IF NOT EXISTS project
     activity_records    JSON COMMENT '项目相关的活动记录（如更新、公告等，JSON格式）',
 
     -- 通用控制字段
-    is_deleted          BOOLEAN                                   DEFAULT FALSE COMMENT '逻辑删除标志：TRUE 表示已删除',
-    created_at          TIMESTAMP                                 DEFAULT CURRENT_TIMESTAMP COMMENT '项目创建时间',
-    updated_at          TIMESTAMP                                 DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '项目最后更新时间'
+    is_deleted          BOOLEAN                                             DEFAULT FALSE COMMENT '逻辑删除标志：TRUE 表示已删除',
+    created_at          TIMESTAMP                                           DEFAULT CURRENT_TIMESTAMP COMMENT '项目创建时间',
+    updated_at          TIMESTAMP                                           DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '项目最后更新时间'
 ) COMMENT '项目表';
 
 -- 4. 插入测试数据

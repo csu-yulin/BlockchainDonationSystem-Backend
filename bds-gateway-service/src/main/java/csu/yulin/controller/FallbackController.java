@@ -14,9 +14,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class FallbackController {
 
-    @RequestMapping("/fallback/user")
-    public CommonResponse<String> userFallback() {
+    @RequestMapping("/fallback/default")
+    public CommonResponse<String> defaultFallback() {
         return CommonResponse.error(ResultCode.INTERNAL_SERVER_ERROR,
-                "用户服务暂不可用，请稍后再试");
+                "服务暂不可用，请稍后再试");
     }
 }

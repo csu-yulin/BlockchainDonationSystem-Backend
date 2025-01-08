@@ -12,10 +12,9 @@ spring:
       - nacos:redis-config.yaml
   cloud:
     nacos:
-      discovery:
-        server-addr: 113.45.133.84:8848
-        username: ${NACOS_USERNAME}
-        password: ${NACOS_PASSWORD}
+      server-addr: 47.120.70.160:8848
+      username: ${NACOS_USERNAME}
+      password: ${NACOS_PASSWORD}
       config:
         file-extension: yaml
         refresh-enabled: false
@@ -26,6 +25,23 @@ spring:
       discovery:
         locator:
           enabled: true # 开启动态路由
+      default-filters: # 配置全局默认过滤器
+        - name: RequestRateLimiter
+          args:
+            redis-rate-limiter.replenishRate: 5
+            redis-rate-limiter.burstCapacity: 10
+            key-resolver: "#{@remoteAddrKeyResolver}"
+        - name: CircuitBreaker
+          args:
+            name: defaultCircuitBreaker
+            fallbackUri: forward:/fallback/default
+            failureRateThreshold: 70  # 允许更高的失败率
+            slowCallRateThreshold: 70  # 允许更高的慢调用比例
+            slowCallDurationThreshold: 5s  # 将慢调用时间阈值延长
+            slidingWindowSize: 100  # 增加滑动窗口的大小
+            minimumNumberOfCalls: 5  # 减少触发熔断的最小调用次数
+            waitDurationInOpenState: 5s  # 缩短熔断后恢复的等待时间
+
       routes:
         - id: user
           uri: lb://bds-user-service
@@ -33,15 +49,12 @@ spring:
             - Path=/hopechain/user/**
           filters:
             - StripPrefix=1
-            - name: RequestRateLimiter
-              args:
-                redis-rate-limiter.replenishRate: 5
-                redis-rate-limiter.burstCapacity: 10
-                key-resolver: "#{@remoteAddrKeyResolver}"
-            - name: CircuitBreaker
-              args:
-                name: userCircuitBreaker
-                fallbackUri: forward:/fallback/user
+        - id: project
+          uri: lb://bds-project-service
+          predicates:
+            - Path=/hopechain/project/**
+          filters:
+            - StripPrefix=1
   # 缓存配置
   cache:
     type: caffeine

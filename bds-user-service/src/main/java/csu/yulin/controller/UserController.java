@@ -29,6 +29,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -138,6 +140,7 @@ public class UserController {
 
         // 登录成功，生成会话
         StpUtil.login(user.getUserId());
+        StpUtil.getSession().set("role", user.getRole());
         log.info("User logged in successfully: phoneNumber={}", userDTO.getPhoneNumber());
 
         // 构造返回的用户信息
@@ -184,6 +187,7 @@ public class UserController {
         log.info("User registered successfully: phoneNumber={}, role={}", userDTO.getPhoneNumber(),
                 RoleEnum.INDIVIDUAL.getCode());
         StpUtil.login(user.getUserId());
+        StpUtil.getSession().set("role", user.getRole());
         UserVO vo = UserConverter.toUserVO(userService.getById(user.getUserId()));
         return CommonResponse.success(vo);
     }
@@ -216,6 +220,7 @@ public class UserController {
         boolean success = userService.save(user);
         AssertUtil.isTrue(success, ResultCode.INTERNAL_SERVER_ERROR, "组织用户注册失败");
         StpUtil.login(user.getUserId());
+        StpUtil.getSession().set("role", user.getRole());
         log.info("Organization registered successfully: orgName={}, phoneNumber={}",
                 orgDTO.getOrgName(), orgDTO.getPhoneNumber());
 
@@ -434,6 +439,59 @@ public class UserController {
         AssertUtil.isTrue(success, ResultCode.INTERNAL_SERVER_ERROR, "更新公益组织信息失败");
 
         return CommonResponse.success("更新成功");
+    }
+
+    // TODO: 偷下懒，在这个接口顺便把用户姓名和组织名称查询也做了，嘿嘿(*^▽^*)
+
+    /**
+     * 检查用户是否有资格新建项目
+     */
+    @GetMapping("/{userId}/canCreateProject")
+    public CommonResponse<Map<String, Object>> canCreateProject(@PathVariable Long userId) {
+        // 校验用户是否存在
+        User user = userService.getById(userId);
+        AssertUtil.notNull(user, "用户不存在");
+
+        // 初始化响应数据
+        Map<String, Object> responseData = new HashMap<>();
+        boolean canCreate = false;
+        String reason = "用户有资格新建项目";
+        String orgName = "";
+        String contactPersonName = "";
+
+        // 判断是否有资格
+        if (RoleEnum.ORGANIZATION.getCode().equals(user.getRole())) {
+            // 公益组织需要认证状态为通过（APPROVED）且状态为ACTIVE
+            if (!CertificationStatusEnum.APPROVED.getCode().equals(user.getCertificationStatus())) {
+                reason = "公益组织需要认证通过";
+            } else if (!UserStatusEnum.ACTIVE.getCode().equals(user.getStatus())) {
+                reason = "公益组织账户状态必须为ACTIVE";
+            } else {
+                orgName = user.getOrgName();
+                contactPersonName = user.getContactPersonName();
+                canCreate = true;
+            }
+        } else if (RoleEnum.INDIVIDUAL.getCode().equals(user.getRole())) {
+            // 个体用户只需要状态为ACTIVE
+            if (!UserStatusEnum.ACTIVE.getCode().equals(user.getStatus())) {
+                reason = "个体用户账户状态必须为ACTIVE";
+            } else {
+                contactPersonName = user.getUserRealName();
+                canCreate = true;
+            }
+        } else {
+            reason = "用户角色无效，无法新建项目";
+        }
+
+        // 填充响应数据
+        responseData.put("canCreate", canCreate);
+        responseData.put("reason", reason);
+        responseData.put("orgName", orgName);
+        responseData.put("contactPersonName", contactPersonName);
+
+        log.info("用户 ID {} 是否有资格新建项目：{}，原因：{}", userId, canCreate, reason);
+
+        return CommonResponse.success("检查成功", responseData);
     }
 
 }
