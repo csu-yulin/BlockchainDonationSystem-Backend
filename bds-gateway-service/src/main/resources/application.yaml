@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 7890
   servlet:
     context-path: /hopechain
 
@@ -53,6 +53,18 @@ spring:
           uri: lb://bds-project-service
           predicates:
             - Path=/hopechain/project/**
+          filters:
+            - StripPrefix=1
+        - id: blockchain
+          uri: lb://bds-blockchain-service
+          predicates:
+            - Path=/hopechain/blockchain/**
+          filters:
+            - StripPrefix=1
+        - id: voucher
+          uri: lb://bds-voucher-service
+          predicates:
+            - Path=/hopechain/voucher/**
           filters:
             - StripPrefix=1
   # 缓存配置

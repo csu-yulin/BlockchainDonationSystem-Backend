@@ -1,0 +1,30 @@
+docker login 113.45.133.84:5000
+
+curl -u yulin:jntff526 http://113.45.133.84:5000/v2/_catalog
+
+docker compose --profile prod pull
+docker compose --profile prod up -d
+
+docker compose --profile prod down
+docker compose --profile prod rm -f
+
+# 更新单个服务
+ cd  .\bds-gateway-service\
+mvn clean package -DskipTests
+docker build -t bds-gateway-service:latest .
+docker tag bds-gateway-service:latest 113.45.133.84:5000/bds-gateway-service:latest
+docker push 113.45.133.84:5000/bds-gateway-service:latest
+
+docker pull 113.45.133.84:5000/bds-gateway-service:latest
+docker compose --profile prod stop bds-gateway-service
+docker compose --profile prod rm -f bds-gateway-service
+docker compose --profile prod up -d bds-gateway-service
+docker restart root-bds-gateway-service-1
+
+docker exec -it redis-server redis-cli
+AUTH jntff526
+INFO clients
+CLIENT LIST
+
+docker network inspect
+docker network ls

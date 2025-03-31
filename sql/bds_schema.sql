@@ -229,3 +229,94 @@ VALUES ('助学计划', '帮助贫困地区学生完成学业', 'https://example
         '健康公益', '赵敏', 'APPROVED', '资助充分合理', 203,
         'ACTIVE', 150000.00, 60000.00, '6222020000010', '2024-02-01', '2024-10-31',
         NULL, NULL, FALSE, NOW(), NOW());
+
+-- 5. 创建 `donation` 表
+CREATE TABLE IF NOT EXISTS donation
+(
+    donation_id      BIGINT PRIMARY KEY COMMENT '捐款ID，与链上 donationId 一致',
+    user_id          BIGINT         NOT NULL COMMENT '捐款用户ID（关联 user 表）',
+    project_id       BIGINT         NOT NULL COMMENT '关联项目ID（关联 project 表）',
+    amount           DECIMAL(15, 2) NOT NULL COMMENT '捐款金额',
+    timestamp        TIMESTAMP      NOT NULL COMMENT '捐款时间戳，与链上一致',
+    transaction_hash VARCHAR(66) COMMENT '区块链交易哈希，用于追溯链上记录',
+    is_deleted       BOOLEAN   DEFAULT FALSE COMMENT '逻辑删除标志',
+    created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间',
+    updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录最后更新时间',
+    FOREIGN KEY (user_id) REFERENCES user (user_id),
+    FOREIGN KEY (project_id) REFERENCES project (project_id)
+) COMMENT '捐款记录表';
+
+-- 6. 插入测试数据
+INSERT INTO donation (donation_id, user_id, project_id, amount, timestamp, transaction_hash, is_deleted, created_at,
+                      updated_at)
+VALUES (1, 1, 1, 100.00, '2025-03-20 10:00:00', '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+        FALSE, '2025-03-20 10:00:00', '2025-03-20 10:00:00'),
+       (2, 2, 1, 50.50, '2025-03-20 14:30:00', '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+        FALSE, '2025-03-20 14:30:00', '2025-03-20 14:30:00'),
+       (3, 3, 2, 200.75, '2025-03-21 09:15:00', '0x7890abcdef1234567890abcdef1234567890abcdef1234567890abcdef123456',
+        FALSE, '2025-03-21 09:15:00', '2025-03-21 09:15:00'),
+       (4, 4, 2, 300.00, '2025-03-22 16:45:00', '0x4567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef123',
+        FALSE, '2025-03-22 16:45:00', '2025-03-22 16:45:00'),
+       (5, 5, 3, 75.25, '2025-03-23 11:20:00', '0xdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abc',
+        FALSE, '2025-03-23 11:20:00', '2025-03-23 11:20:00'),
+       (6, 1, 3, 150.00, '2025-03-24 08:30:00', '0xabc1234567890defabc1234567890defabc1234567890defabc1234567890def',
+        FALSE, '2025-03-24 08:30:00', '2025-03-24 08:30:00'),
+       (7, 2, 1, 250.80, '2025-03-24 15:10:00', '0x7890defabc1234567890defabc1234567890defabc1234567890defabc123456',
+        FALSE, '2025-03-24 15:10:00', '2025-03-24 15:10:00'),
+       (8, 3, 2, 80.00, '2025-03-25 13:25:00', '0x4567890defabc1234567890defabc1234567890defabc1234567890defabc123',
+        FALSE, '2025-03-25 13:25:00', '2025-03-25 13:25:00'),
+       (9, 4, 3, 500.00, '2025-03-25 17:50:00', '0x1234567890defabc1234567890defabc1234567890defabc1234567890defabc',
+        FALSE, '2025-03-25 17:50:00', '2025-03-25 17:50:00'),
+       (10, 5, 1, 30.90, '2025-03-26 09:00:00', '0xdefabc1234567890defabc1234567890defabc1234567890defabc1234567890',
+        FALSE, '2025-03-26 09:00:00', '2025-03-26 09:00:00');
+
+-- 7. 创建 `voucher` 表
+CREATE TABLE IF NOT EXISTS voucher
+(
+    voucher_id       BIGINT PRIMARY KEY COMMENT '凭证ID，与链上 voucherId 一致',
+    project_id       BIGINT       NOT NULL COMMENT '关联项目ID（关联 project 表）',
+    org_id           BIGINT       NOT NULL COMMENT '公益组织ID（关联 user 表，role=ORG）',
+    ipfs_hash        VARCHAR(255) NOT NULL COMMENT '凭证文件的IPFS哈希，与链上 bytes32 一致',
+    timestamp        TIMESTAMP    NOT NULL COMMENT '上传时间戳，与链上一致',
+    transaction_hash VARCHAR(66) COMMENT '区块链交易哈希，用于追溯链上记录',
+    file_url         VARCHAR(255) COMMENT '凭证文件的实际URL（可选，链下存储）',
+    is_deleted       BOOLEAN   DEFAULT FALSE COMMENT '逻辑删除标志',
+    created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间',
+    updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录最后更新时间',
+    FOREIGN KEY (project_id) REFERENCES project (project_id),
+    FOREIGN KEY (org_id) REFERENCES user (user_id)
+) COMMENT '凭证记录表';
+
+-- 8. 插入测试数据
+INSERT INTO voucher (voucher_id, project_id, org_id, ipfs_hash, timestamp, transaction_hash, file_url, is_deleted,
+                     created_at, updated_at)
+VALUES (1, 1, 6, '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef', '2025-03-20 09:00:00',
+        '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890', 'https://ipfs.io/ipfs/QmA1', FALSE,
+        '2025-03-20 09:00:00', '2025-03-20 09:00:00'),
+       (2, 1, 7, '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890', '2025-03-20 14:15:00',
+        '0x7890abcdef1234567890abcdef1234567890abcdef1234567890abcdef123456', 'https://ipfs.io/ipfs/QmA2', FALSE,
+        '2025-03-20 14:15:00', '2025-03-20 14:15:00'),
+       (3, 2, 8, '0x7890abcdef1234567890abcdef1234567890abcdef1234567890abcdef123456', '2025-03-21 10:30:00',
+        '0x4567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef123', 'https://ipfs.io/ipfs/QmA3', FALSE,
+        '2025-03-21 10:30:00', '2025-03-21 10:30:00'),
+       (4, 2, 6, '0x4567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef123', '2025-03-22 13:45:00',
+        '0xdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abc', 'https://ipfs.io/ipfs/QmA4', FALSE,
+        '2025-03-22 13:45:00', '2025-03-22 13:45:00'),
+       (5, 3, 7, '0xdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abc', '2025-03-23 08:20:00',
+        '0xabc1234567890defabc1234567890defabc1234567890defabc1234567890def', 'https://ipfs.io/ipfs/QmA5', FALSE,
+        '2025-03-23 08:20:00', '2025-03-23 08:20:00'),
+       (6, 3, 8, '0xabc1234567890defabc1234567890defabc1234567890defabc1234567890def', '2025-03-23 16:10:00',
+        '0x7890defabc1234567890defabc1234567890defabc1234567890defabc123456', 'https://ipfs.io/ipfs/QmA6', FALSE,
+        '2025-03-23 16:10:00', '2025-03-23 16:10:00'),
+       (7, 1, 6, '0x7890defabc1234567890defabc1234567890defabc1234567890defabc123456', '2025-03-24 11:25:00',
+        '0x4567890defabc1234567890defabc1234567890defabc1234567890defabc123', 'https://ipfs.io/ipfs/QmA7', FALSE,
+        '2025-03-24 11:25:00', '2025-03-24 11:25:00'),
+       (8, 2, 7, '0x4567890defabc1234567890defabc1234567890defabc1234567890defabc123', '2025-03-25 09:50:00',
+        '0x1234567890defabc1234567890defabc1234567890defabc1234567890defabc', 'https://ipfs.io/ipfs/QmA8', FALSE,
+        '2025-03-25 09:50:00', '2025-03-25 09:50:00'),
+       (9, 3, 8, '0x1234567890defabc1234567890defabc1234567890defabc1234567890defabc', '2025-03-25 15:30:00',
+        '0xdefabc1234567890defabc1234567890defabc1234567890defabc1234567890', 'https://ipfs.io/ipfs/QmA9', FALSE,
+        '2025-03-25 15:30:00', '2025-03-25 15:30:00'),
+       (10, 1, 6, '0xdefabc1234567890defabc1234567890defabc1234567890defabc1234567890', '2025-03-26 10:00:00',
+        '0xabcdef7890123456abcdef7890123456abcdef7890123456abcdef7890123456', 'https://ipfs.io/ipfs/QmA10', FALSE,
+        '2025-03-26 10:00:00', '2025-03-26 10:00:00');

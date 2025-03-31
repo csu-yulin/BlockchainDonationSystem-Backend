@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="csu.yulin.mapper.VoucherMapper">
+
+    <resultMap id="BaseResultMap" type="csu.yulin.model.entity.Voucher">
+        <id property="voucherId" column="voucher_id" jdbcType="BIGINT"/>
+        <result property="projectId" column="project_id" jdbcType="BIGINT"/>
+        <result property="orgId" column="org_id" jdbcType="BIGINT"/>
+        <result property="ipfsHash" column="ipfs_hash" jdbcType="VARCHAR"/>
+        <result property="timestamp" column="timestamp" jdbcType="TIMESTAMP"/>
+        <result property="transactionHash" column="transaction_hash" jdbcType="VARCHAR"/>
+        <result property="fileUrl" column="file_url" jdbcType="VARCHAR"/>
+        <result property="isDeleted" column="is_deleted" jdbcType="TINYINT"/>
+        <result property="createdAt" column="created_at" jdbcType="TIMESTAMP"/>
+        <result property="updatedAt" column="updated_at" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        voucher_id
+        ,project_id,org_id,
+        ipfs_hash,timestamp,transaction_hash,
+        file_url,is_deleted,created_at,
+        updated_at
+    </sql>
+</mapper>

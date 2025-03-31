@@ -1,0 +1,76 @@
+services:
+  bds-voucher-service:
+    image: 113.45.133.84:5000/bds-voucher-service:latest
+    ports:
+      - "3454:3454"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+    networks:
+      - bds-network
+    profiles:
+      - prod
+
+  bds-user-service:
+    image: 113.45.133.84:5000/bds-user-service:latest
+    ports:
+      - "3450:3450"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+    networks:
+      - bds-network
+    profiles:
+      - prod
+
+  bds-project-service:
+    image: 113.45.133.84:5000/bds-project-service:latest
+    ports:
+      - "3451:3451"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+    networks:
+      - bds-network
+    profiles:
+      - prod
+
+  bds-donation-service:
+    image: 113.45.133.84:5000/bds-donation-service:latest
+    ports:
+      - "3453:3453"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+    networks:
+      - bds-network
+    profiles:
+      - prod
+
+  bds-blockchain-service:
+    image: 113.45.133.84:5000/bds-blockchain-service:latest
+    ports:
+      - "3452:3452"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+    networks:
+      - bds-network
+    profiles:
+      - prod
+
+  bds-gateway-service:
+    image: 113.45.133.84:5000/bds-gateway-service:latest
+    ports:
+      - "7890:7890"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+    depends_on:
+      - bds-voucher-service
+      - bds-user-service
+      - bds-project-service
+      - bds-donation-service
+      - bds-blockchain-service
+    networks:
+      - bds-network
+    profiles:
+      - prod
+
+networks:
+  bds-network:
+    driver: bridge
