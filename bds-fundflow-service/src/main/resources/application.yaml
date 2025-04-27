@@ -1,0 +1,28 @@
+server:
+  port: 3455
+
+spring:
+  application:
+    name: bds-fundflow-service
+  config:
+    import:
+      - nacos:common.yaml
+      - nacos:db-config.yaml
+      - nacos:user.yaml
+      - nacos:redis-config.yaml
+  cloud:
+    nacos:
+      username: ${NACOS_USERNAME}
+      password: ${NACOS_PASSWORD}
+      server-addr: 47.120.70.160:8848
+      config:
+        namespace: ${NACOS_NAMESPACE}
+        file-extension: yaml
+        refresh-enabled: false
+        shared-configs:
+          - data-id: common.yaml
+          - data-id: db-config.yaml
+          - data-id: user.yaml
+          - data-id: redis-config.yaml
+      discovery:
+        namespace: ${NACOS_NAMESPACE}

@@ -5,6 +5,10 @@ spring:
   # 应用环境
   application:
     name: bds-voucher-service  # 微服务名称
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
   config:
     import:
       - nacos:common.yaml
@@ -15,8 +19,14 @@ spring:
       password: ${NACOS_PASSWORD}
       server-addr: 47.120.70.160:8848
       config:
+        #        namespace: ${NACOS_NAMESPACE}
+        namespace: ${NACOS_NAMESPACE}
         file-extension: yaml
         refresh-enabled: false
         shared-configs:
           - data-id: common.yaml
           - data-id: db-config.yaml
+      discovery:
+        namespace: ${NACOS_NAMESPACE}
+
+

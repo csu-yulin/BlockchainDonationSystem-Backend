@@ -16,31 +16,34 @@ spring:
       username: ${NACOS_USERNAME}
       password: ${NACOS_PASSWORD}
       config:
+        namespace: ${NACOS_NAMESPACE}
         file-extension: yaml
         refresh-enabled: false
         shared-configs:
           - data-id: common.yaml
           - data-id: redis-config.yaml
+      discovery:
+        namespace: ${NACOS_NAMESPACE}
     gateway:
       discovery:
         locator:
           enabled: true # 开启动态路由
-      default-filters: # 配置全局默认过滤器
-        - name: RequestRateLimiter
-          args:
-            redis-rate-limiter.replenishRate: 5
-            redis-rate-limiter.burstCapacity: 10
-            key-resolver: "#{@remoteAddrKeyResolver}"
-        - name: CircuitBreaker
-          args:
-            name: defaultCircuitBreaker
-            fallbackUri: forward:/fallback/default
-            failureRateThreshold: 70  # 允许更高的失败率
-            slowCallRateThreshold: 70  # 允许更高的慢调用比例
-            slowCallDurationThreshold: 5s  # 将慢调用时间阈值延长
-            slidingWindowSize: 100  # 增加滑动窗口的大小
-            minimumNumberOfCalls: 5  # 减少触发熔断的最小调用次数
-            waitDurationInOpenState: 5s  # 缩短熔断后恢复的等待时间
+      #      default-filters: # 配置全局默认过滤器
+      #        - name: RequestRateLimiter
+      #          args:
+      #            redis-rate-limiter.replenishRate: 5
+      #            redis-rate-limiter.burstCapacity: 10
+      #            key-resolver: "#{@remoteAddrKeyResolver}"
+      #        - name: CircuitBreaker
+      #          args:
+      #            name: defaultCircuitBreaker
+      #            fallbackUri: forward:/fallback/default
+      #            failureRateThreshold: 85            # 🚀 更高的失败容忍度（默认50）
+      #            slowCallRateThreshold: 90           # 🚀 更高的慢调用容忍比例（默认100）
+      #            slowCallDurationThreshold: 7s       # ⏱️ 慢调用的阈值时间放宽（默认2s）
+      #            slidingWindowSize: 200              # 📊 更大的窗口收集更多数据
+      #            minimumNumberOfCalls: 3             # 📉 更早开始统计健康情况（默认10）
+      #            waitDurationInOpenState: 3s         # ⏳ 熔断后更快尝试恢复（默认60s）
 
       routes:
         - id: user
@@ -65,6 +68,18 @@ spring:
           uri: lb://bds-voucher-service
           predicates:
             - Path=/hopechain/voucher/**
+          filters:
+            - StripPrefix=1
+        - id: donation
+          uri: lb://bds-donation-service
+          predicates:
+            - Path=/hopechain/donation/**
+          filters:
+            - StripPrefix=1
+        - id: fundflow
+          uri: lb://bds-fundflow-service
+          predicates:
+            - Path=/hopechain/fundflow/**
           filters:
             - StripPrefix=1
   # 缓存配置

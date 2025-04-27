@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import csu.yulin.common.PageDTO;
 import csu.yulin.model.entity.Project;
+import csu.yulin.model.vo.ProjectStatsVO;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -31,4 +32,6 @@ public interface IProjectService extends IService<Project> {
      * @return 项目列表
      */
     Page<Project> getProjectsByConditions(PageDTO pageDTO);
+
+    ProjectStatsVO getProjectStatsByOrgId(Long orgId);
 }

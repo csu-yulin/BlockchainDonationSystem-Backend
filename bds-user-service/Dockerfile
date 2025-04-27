@@ -11,4 +11,4 @@ COPY target/bds-user-service-1.0-SNAPSHOT.jar app.jar
 EXPOSE 3450
 
 # 运行应用，添加 Nacos 参数
-ENTRYPOINT ["java", "-jar", "app.jar", "--NACOS_USERNAME=nacos", "--NACOS_PASSWORD=jntff526"]
+ENTRYPOINT ["java", "-jar", "app.jar", "--NACOS_USERNAME=nacos", "--NACOS_PASSWORD=jntff526", "--NACOS_NAMESPACE=b40c156b-305c-4907-8a28-f8bc17d334a8"]

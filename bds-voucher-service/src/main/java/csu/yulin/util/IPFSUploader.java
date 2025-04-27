@@ -7,17 +7,13 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.io.IOException;
 
-/**
- * 断言工具类，用于抛出 BusinessException 异常
- *
- * @author lp
- * @create 2025-03-27
- */
 @Component
 @Slf4j
 public class IPFSUploader {
 
     private static final String IPFS_API_URL = "http://118.145.177.151:5001/api/v0";
+    // 10MB in bytes
+    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
     private final OkHttpClient client;
 
     public IPFSUploader() {
@@ -26,6 +22,11 @@ public class IPFSUploader {
 
     // 上传文件到IPFS
     public String uploadFileAndPin(File file) throws IOException {
+        // 校验文件大小
+        if (file.length() > MAX_FILE_SIZE) {
+            throw new IOException("File size exceeds maximum limit of " + (MAX_FILE_SIZE / (1024 * 1024)) + "MB");
+        }
+
         // Step 1: 上传文件到IPFS
         String cid = uploadFileToIPFS(file);
 
@@ -51,8 +52,14 @@ public class IPFSUploader {
         try (Response response = client.newCall(request).execute()) {
             if (response.isSuccessful()) {
                 // 解析响应，获取CID
-                String responseBody = response.body().string();
-                String cid = parseCIDFromResponse(responseBody);
+                String responseBody = null;
+                if (response.body() != null) {
+                    responseBody = response.body().string();
+                }
+                String cid = null;
+                if (responseBody != null) {
+                    cid = parseCIDFromResponse(responseBody);
+                }
                 log.info("File uploaded successfully. CID: {}", cid);
                 return cid;
             } else {

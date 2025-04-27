@@ -26,12 +26,13 @@
         <result column="is_deleted" property="isDeleted"/>
         <result column="created_at" property="createdAt"/>
         <result column="updated_at" property="updatedAt"/>
+        <result column="transaction_hash" property="transactionHash"/>
     </resultMap>
 
     <!-- 通用查询结果列 -->
     <sql id="Base_Column_List">
         project_id
-        , project_name, description, cover_image, creator_id, creator_role, org_name, contact_person_name, approval_status, approval_notes, verifier_id, status, target_amount, raised_amount, bank_account, start_date, end_date, donation_records, activity_records, is_deleted, created_at, updated_at
+        , project_name, description, cover_image, creator_id, creator_role, org_name, contact_person_name, approval_status, approval_notes, verifier_id, status, target_amount, raised_amount, bank_account, start_date, end_date, donation_records, activity_records, is_deleted, created_at, updated_at, transaction_hash
     </sql>
 
 </mapper>

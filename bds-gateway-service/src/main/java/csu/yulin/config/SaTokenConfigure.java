@@ -1,7 +1,9 @@
 package csu.yulin.config;
 
 import cn.dev33.satoken.context.SaHolder;
+import cn.dev33.satoken.context.model.SaRequest;
 import cn.dev33.satoken.reactor.filter.SaReactorFilter;
+import cn.dev33.satoken.router.SaHttpMethod;
 import cn.dev33.satoken.router.SaRouter;
 import cn.dev33.satoken.stp.StpUtil;
 import csu.yulin.enums.ResultCode;
@@ -18,7 +20,6 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 @Configuration
 public class SaTokenConfigure {
-
     /**
      * 注册 Sa-Token全局过滤器
      *
@@ -32,11 +33,16 @@ public class SaTokenConfigure {
                 // 放行路径：登录、注册、验证码等接口
                 .addExclude(
                         "/user/login/phone",
+                        "/user/login/email",
                         "/user/register/individual",
                         "/user/register/organization",
                         "/user/captcha",
                         "/user/validateCaptcha",
-                        "/user/smsCode"
+                        "/user/smsCode",
+                        "/user/count",
+                        "/donation/amount",
+                        "/project/count",
+                        "/donation/notify"
                 )
                 // 鉴权逻辑
                 .setAuth(obj -> {
@@ -50,6 +56,36 @@ public class SaTokenConfigure {
                 .setError(e -> {
                     // 返回错误信息
                     return "{\"code\": " + ResultCode.UNAUTHORIZED.getCode() + ", \"message\": \"" + ResultCode.UNAUTHORIZED.getMessage() + "\"}";
-                });
+                })// 前置函数：在每次认证函数之前执行
+                .setBeforeAuth(obj -> {
+
+                    // 获得客户端domain
+                    SaRequest request = SaHolder.getRequest();
+                    String origin = request.getHeader("Origin");
+                    if (origin == null) {
+                        origin = request.getHeader("Referer");
+                    }
+
+                    // ---------- 设置跨域响应头 ----------
+                    SaHolder.getResponse()
+                            // 允许第三方 Cookie
+                            .setHeader("Access-Control-Allow-Credentials", "true")
+                            // 允许指定域访问跨域资源
+                            .setHeader("Access-Control-Allow-Origin", origin)
+                            // 允许所有请求方式
+                            .setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, HEAD,PUT")
+                            // 允许的header参数
+                            .setHeader("Access-Control-Allow-Headers", "access-control-allow-origin, authority, content-type, version-info, X-Requested-With,satoken")
+                            .setHeader("Access-Control-Allow-Credentials", "true")
+                            .setHeader("Access-Control-Max-Age", "3600")
+                    ;
+
+                    // 如果是预检请求，则立即返回到前端
+                    SaRouter.match(SaHttpMethod.OPTIONS)
+                            .free(r -> System.out.println("--------OPTIONS预检请求，不做处理"))
+                            .back();
+                })
+                ;
+
     }
 }

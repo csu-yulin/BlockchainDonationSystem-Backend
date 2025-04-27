@@ -33,7 +33,7 @@ public interface IDonationService extends IService<Donation> {
     Page<DonationVO> listDonations(PageDTO requestDTO);
 
     /**
-     * 获取捐款总额
+     * 根据条件获取捐款总额
      */
     BigDecimal getDonationTotal(DonationDTO requestDTO);
 }

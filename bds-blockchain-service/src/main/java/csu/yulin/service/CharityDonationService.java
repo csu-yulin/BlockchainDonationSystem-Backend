@@ -1,6 +1,6 @@
 package csu.yulin.service;
 
-import csu.yulin.model.dto.*;
+import csu.yulin.model.bo.*;
 import csu.yulin.utils.IOUtil;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -76,7 +76,7 @@ public class CharityDonationService {
     }
 
     /*** 区块链查询方法 ***/
-    public CallResponse getProjectDonations(CharityDonationGetProjectDonationsInputDTO input) {
+    public CallResponse getProjectDonations(CharityDonationGetProjectDonationsInputBO input) {
         return callContractMethod("getProjectDonations", input.toArgs());
     }
 
@@ -84,43 +84,63 @@ public class CharityDonationService {
         return callContractMethod("donationCount", List.of());
     }
 
-    public CallResponse projectVouchers(CharityDonationProjectVouchersInputDTO input) {
+    public CallResponse getProjectFundFlows(CharityDonationGetProjectFundFlowsInputBO input) {
+        return callContractMethod("getProjectFundFlows", input.toArgs());
+    }
+
+    public CallResponse projectVouchers(CharityDonationProjectVouchersInputBO input) {
         return callContractMethod("projectVouchers", input.toArgs());
     }
 
-    public CallResponse getProjectVouchers(CharityDonationGetProjectVouchersInputDTO input) {
+    public CallResponse getProjectVouchers(CharityDonationGetProjectVouchersInputBO input) {
         return callContractMethod("getProjectVouchers", input.toArgs());
     }
 
-    public CallResponse getProject(CharityDonationGetProjectInputDTO input) {
+    public CallResponse getProject(CharityDonationGetProjectInputBO input) {
         return callContractMethod("getProject", input.toArgs());
     }
 
     public CallResponse voucherCount() {
-        return callContractMethod("voucherCount", List.of());
+        return callContractMethod("voverageCount", List.of());
     }
 
-    public CallResponse getDonation(CharityDonationGetDonationInputDTO input) {
+    public CallResponse getDonation(CharityDonationGetDonationInputBO input) {
         return callContractMethod("getDonation", input.toArgs());
     }
 
-    public CallResponse getVoucher(CharityDonationGetVoucherInputDTO input) {
+    public CallResponse getVoucher(CharityDonationGetVoucherInputBO input) {
         return callContractMethod("getVoucher", input.toArgs());
     }
 
-    public CallResponse vouchers(CharityDonationVouchersInputDTO input) {
+    public CallResponse fundFlows(CharityDonationFundFlowsInputBO input) {
+        return callContractMethod("fundFlows", input.toArgs());
+    }
+
+    public CallResponse projectFundFlows(CharityDonationProjectFundFlowsInputBO input) {
+        return callContractMethod("projectFundFlows", input.toArgs());
+    }
+
+    public CallResponse getFundFlow(CharityDonationGetFundFlowInputBO input) {
+        return callContractMethod("getFundFlow", input.toArgs());
+    }
+
+    public CallResponse fundFlowCount() {
+        return callContractMethod("fundFlowCount", List.of());
+    }
+
+    public CallResponse vouchers(CharityDonationVouchersInputBO input) {
         return callContractMethod("vouchers", input.toArgs());
     }
 
-    public CallResponse projectDonations(CharityDonationProjectDonationsInputDTO input) {
+    public CallResponse projectDonations(CharityDonationProjectDonationsInputBO input) {
         return callContractMethod("projectDonations", input.toArgs());
     }
 
-    public CallResponse donations(CharityDonationDonationsInputDTO input) {
+    public CallResponse donations(CharityDonationDonationsInputBO input) {
         return callContractMethod("donations", input.toArgs());
     }
 
-    public CallResponse projects(CharityDonationProjectsInputDTO input) {
+    public CallResponse projects(CharityDonationProjectsInputBO input) {
         return callContractMethod("projects", input.toArgs());
     }
 
@@ -129,15 +149,20 @@ public class CharityDonationService {
     }
 
     /*** 区块链交易方法 ***/
-    public TransactionResponse uploadVoucher(CharityDonationUploadVoucherInputDTO input) {
+    public TransactionResponse uploadVoucher(CharityDonationUploadVoucherInputBO input) {
         return sendTransaction("uploadVoucher", input.toArgs());
     }
 
-    public TransactionResponse donate(CharityDonationDonateInputDTO input) {
+    public TransactionResponse donate(CharityDonationDonateInputBO input) {
         return sendTransaction("donate", input.toArgs());
     }
 
-    public TransactionResponse createProject(CharityDonationCreateProjectInputDTO input) {
+    public TransactionResponse createProject(CharityDonationCreateProjectInputBO input) {
         return sendTransaction("createProject", input.toArgs());
     }
+
+    public TransactionResponse recordFundFlow(CharityDonationRecordFundFlowInputBO input) {
+        return sendTransaction("recordFundFlow", input.toArgs());
+    }
+
 }

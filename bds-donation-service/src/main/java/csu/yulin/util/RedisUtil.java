@@ -2,6 +2,7 @@ package csu.yulin.util;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;
@@ -28,12 +29,8 @@ public class RedisUtil {
      * @param timeUnit 时间单位
      */
     public void set(String key, Object value, long time, TimeUnit timeUnit) {
-        if (time <= 0) {
-            // 如果时间小于等于0，则不设置过期时间
-            redisTemplate.opsForValue().set(key, value);
-        } else {
-            redisTemplate.opsForValue().set(key, value, time, timeUnit);
-        }
+        ValueOperations<String, Object> operations = redisTemplate.opsForValue();
+        operations.set(key, value, time, timeUnit);
     }
 
     /**

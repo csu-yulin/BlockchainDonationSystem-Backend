@@ -118,4 +118,9 @@ public class ProjectVO implements Serializable {
      * 项目相关的活动记录（如更新、公告等，JSON格式）
      */
     private String activityRecords;
+
+    /**
+     * 项目的区块链交易哈希值
+     */
+    private String transactionHash;
 }

@@ -3,7 +3,11 @@ package csu.yulin.controller;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.captcha.CaptchaUtil;
 import cn.hutool.captcha.LineCaptcha;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import csu.yulin.common.CommonResponse;
@@ -17,6 +21,8 @@ import csu.yulin.exception.BusinessException;
 import csu.yulin.model.convert.UserConverter;
 import csu.yulin.model.dto.OrganizationDTO;
 import csu.yulin.model.dto.UserDTO;
+import csu.yulin.model.entity.AssistanceHistoryRecord;
+import csu.yulin.model.entity.DonationHistoryRecord;
 import csu.yulin.model.entity.User;
 import csu.yulin.model.vo.OrganizationVO;
 import csu.yulin.model.vo.UserVO;
@@ -24,14 +30,12 @@ import csu.yulin.service.IUserService;
 import csu.yulin.util.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.util.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -58,6 +62,8 @@ public class UserController {
 
     private final OSSUtil ossUtil;
 
+    private final ObjectMapper objectMapper;
+
     /**
      * 上传用户头像
      */
@@ -71,15 +77,15 @@ public class UserController {
         String oldAvatarUrl = user.getAvatar();
 
         // 删除旧头像
-        if (StringUtils.hasText(oldAvatarUrl)) {
-            try {
-                String oldAvatarName = extractFileNameFromUrl(oldAvatarUrl);
-                ossUtil.deleteAvatar(oldAvatarName);
-            } catch (Exception e) {
-                // 记录日志但不阻止流程
-                log.warn("旧头像删除失败或不存在: {}", e.getMessage());
-            }
-        }
+//        if (StringUtils.hasText(oldAvatarUrl)) {
+//            try {
+//                String oldAvatarName = extractFileNameFromUrl(oldAvatarUrl);
+//                ossUtil.deleteAvatar(oldAvatarName);
+//            } catch (Exception e) {
+//                // 记录日志但不阻止流程
+//                log.warn("旧头像删除失败或不存在: {}", e.getMessage());
+//            }
+//        }
 
         // 上传新头像
         try {
@@ -140,6 +146,7 @@ public class UserController {
 
         // 登录成功，生成会话
         StpUtil.login(user.getUserId());
+
         StpUtil.getSession().set("role", user.getRole());
         log.info("User logged in successfully: phoneNumber={}", userDTO.getPhoneNumber());
 
@@ -153,12 +160,48 @@ public class UserController {
         return CommonResponse.success("登录成功", result);
     }
 
+    /**
+     * 公益组织邮箱和密码登录接口
+     */
+    @PostMapping("/login/email")
+    public CommonResponse<Object> loginByEmail(@RequestBody UserDTO userDTO) {
+        // 校验邮箱和密码是否为空
+        AssertUtil.hasText(userDTO.getEmail(), "邮箱不能为空");
+        AssertUtil.hasText(userDTO.getPassword(), "密码不能为空");
+
+        // 根据邮箱查询公益组织信息
+        User user = userService.getOne(new LambdaQueryWrapper<User>()
+                .eq(User::getEmail, userDTO.getEmail()));
+        AssertUtil.notNull(user, ResultCode.NOT_FOUND, "公益组织不存在");
+
+        // 校验密码
+        boolean isPasswordMatch = MD5Util.encrypt(userDTO.getPassword()).equals(user.getPassword());
+        AssertUtil.isTrue(isPasswordMatch, ResultCode.UNAUTHORIZED, "密码错误");
+
+        // 校验用户状态
+        AssertUtil.isTrue("ACTIVE".equals(user.getStatus()), ResultCode.FORBIDDEN, "公益组织已被禁用，请联系管理员");
+
+        // 登录成功，生成会话
+        StpUtil.login(user.getUserId());
+
+        StpUtil.getSession().set("role", user.getRole());
+        log.info("User logged in successfully: phoneNumber={}", userDTO.getPhoneNumber());
+
+        // 构造返回的用户信息
+        Object result;
+        if (RoleEnum.ORGANIZATION.getCode().equals(user.getRole())) {
+            result = UserConverter.toOrganizationVO(user);
+        } else {
+            result = UserConverter.toUserVO(user);
+        }
+        return CommonResponse.success("登录成功", user);
+    }
 
     /**
      * 个体用户注册
      */
     @PostMapping("/register/individual")
-    public CommonResponse<UserVO> registerByIndividual(@RequestBody UserDTO userDTO) {
+    public CommonResponse<User> registerByIndividual(@RequestBody UserDTO userDTO) {
         AssertUtil.hasText(userDTO.getPassword(), "密码不能为空");
         AssertUtil.hasText(userDTO.getPhoneNumber(), "电话号码不能为空");
         AssertUtil.hasText(userDTO.getCode(), "验证码不能为空");
@@ -166,7 +209,7 @@ public class UserController {
         // 校验验证码是否则是否正确
         String smsRedisKey = RedisKeyConstants.SMS_CODE_PREFIX + userDTO.getPhoneNumber();
         String storedSmsCode = (String) redisUtil.get(smsRedisKey);
-        AssertUtil.isTrue(StringUtils.hasText(storedSmsCode) && storedSmsCode.equals(userDTO.getCode()),
+        AssertUtil.isTrue(StringUtils.isNotBlank(storedSmsCode) && storedSmsCode.equals(userDTO.getCode()),
                 ResultCode.BAD_REQUEST, "验证码错误或无效");
         redisUtil.delete(smsRedisKey);
 
@@ -189,7 +232,7 @@ public class UserController {
         StpUtil.login(user.getUserId());
         StpUtil.getSession().set("role", user.getRole());
         UserVO vo = UserConverter.toUserVO(userService.getById(user.getUserId()));
-        return CommonResponse.success(vo);
+        return CommonResponse.success(userService.getById(user.getUserId()));
     }
 
     /**
@@ -356,7 +399,7 @@ public class UserController {
         // 检查权限：只能是用户自己或管理员
         boolean isAdmin = RoleEnum.ADMIN.getCode().equals(currentUser.getRole());
         boolean isSelf = currentUserId.equals(userId);
-        AssertUtil.isTrue(isAdmin || isSelf, ResultCode.FORBIDDEN, "无权限查看该用户信息");
+//        AssertUtil.isTrue(isAdmin || isSelf, ResultCode.FORBIDDEN, "无权限查看该用户信息");
 
         // 查询用户信息
         User user = userService.getById(userId);
@@ -365,9 +408,10 @@ public class UserController {
         // 根据用户角色构造返回信息
         Object result;
         if (RoleEnum.ORGANIZATION.getCode().equals(user.getRole())) {
-            result = UserConverter.toOrganizationVO(user);
+            result = user;
         } else {
-            result = UserConverter.toUserVO(user);
+//            result = UserConverter.toUserVO(user);
+            result = user;
         }
 
         // 返回用户信息
@@ -389,7 +433,7 @@ public class UserController {
      * 更新个体用户信息
      */
     @PutMapping("/update/individual")
-    public CommonResponse<String> updateIndividualUser(@RequestBody UserDTO userDTO) {
+    public CommonResponse<User> updateIndividualUser(@RequestBody UserDTO userDTO) throws JsonProcessingException {
         // 获取当前登录用户 ID
         Long loggedInUserId = StpUtil.getLoginIdAsLong();
 
@@ -403,21 +447,56 @@ public class UserController {
         // 判断是否是用户自己或管理员
         boolean isAdmin = RoleEnum.ADMIN.getCode().equals(userService.getById(loggedInUserId).getRole());
         boolean isSelf = loggedInUserId.equals(userDTO.getUserId());
-        AssertUtil.isTrue(isAdmin || isSelf, "您无权限更新该用户的信息");
+//        AssertUtil.isTrue(isAdmin || isSelf, "您无权限更新该用户的信息");
 
         // 保存更新后的数据
+        if (StringUtils.isNotBlank(userDTO.getDonationHistory())) {
+            // 原 donation_history（可能为 null）
+            String oldHistoryJson = targetUser.getDonationHistory();
+            List<DonationHistoryRecord> historyList = new ArrayList<>();
+            if (StringUtils.isNotBlank(oldHistoryJson)) {
+                historyList = objectMapper.readValue(oldHistoryJson, new TypeReference<>() {
+                });
+            }
+
+            // 追加新记录（反序列化 DTO 中的 donationHistory）
+            DonationHistoryRecord newRecord = objectMapper.readValue(userDTO.getDonationHistory(), DonationHistoryRecord.class);
+            historyList.add(newRecord);
+
+            // 重新序列化并设置
+            userDTO.setDonationHistory(objectMapper.writeValueAsString(historyList));
+        }
+
+        // 保存更新后的数据
+        if (StringUtils.isNotBlank(userDTO.getAssistanceHistory())) {
+            // 原 donation_history（可能为 null）
+            String oldHistoryJson = targetUser.getAssistanceHistory();
+            List<AssistanceHistoryRecord> historyList = new ArrayList<>();
+            if (StringUtils.isNotBlank(oldHistoryJson)) {
+                historyList = objectMapper.readValue(oldHistoryJson, new TypeReference<>() {
+                });
+            }
+
+            // 追加新记录（反序列化 DTO 中的 donationHistory）
+            AssistanceHistoryRecord newRecord = objectMapper.readValue(userDTO.getAssistanceHistory(), AssistanceHistoryRecord.class);
+            historyList.add(newRecord);
+
+            // 重新序列化并设置
+            userDTO.setAssistanceHistory(objectMapper.writeValueAsString(historyList));
+        }
+
         User user = UserConverter.toEntity(userDTO);
         boolean success = userService.updateById(user);
         AssertUtil.isTrue(success, ResultCode.INTERNAL_SERVER_ERROR, "更新用户信息失败");
-
-        return CommonResponse.success("更新成功");
+        User result = userService.getById(userDTO.getUserId());
+        return CommonResponse.success("更新成功", result);
     }
 
     /**
      * 更新公益组织信息
      */
     @PutMapping("/update/organization")
-    public CommonResponse<String> updateOrganization(@RequestBody OrganizationDTO organizationDTO) {
+    public CommonResponse<User> updateOrganization(@RequestBody OrganizationDTO organizationDTO) {
         // 获取当前登录用户 ID
         Long loggedInUserId = StpUtil.getLoginIdAsLong();
 
@@ -438,7 +517,8 @@ public class UserController {
         boolean success = userService.updateById(user);
         AssertUtil.isTrue(success, ResultCode.INTERNAL_SERVER_ERROR, "更新公益组织信息失败");
 
-        return CommonResponse.success("更新成功");
+        User result = userService.getById(organizationDTO.getUserId());
+        return CommonResponse.success("更新成功", result);
     }
 
     // TODO: 偷下懒，在这个接口顺便把用户姓名和组织名称查询也做了，嘿嘿(*^▽^*)
@@ -494,4 +574,13 @@ public class UserController {
         return CommonResponse.success("检查成功", responseData);
     }
 
+
+    /**
+     * 查询所有用户的数量
+     */
+    @GetMapping("/count")
+    public CommonResponse<Long> getUserCount() {
+        Long count = userService.count();
+        return CommonResponse.success("用户总数查询成功", count);
+    }
 }

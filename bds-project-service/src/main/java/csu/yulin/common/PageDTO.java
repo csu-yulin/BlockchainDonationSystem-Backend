@@ -51,4 +51,9 @@ public class PageDTO {
      * 项目开始日期范围：结束日期
      */
     private LocalDate endDate;
+
+    /**
+     * 创建者Id
+     */
+    private Long creatorId;
 }

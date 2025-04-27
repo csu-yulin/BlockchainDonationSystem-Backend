@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import csu.yulin.enums.ResultCode;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 通用响应对象
@@ -12,6 +13,7 @@ import lombok.Data;
  * @create 2024-12-30
  */
 @Data
+@NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL) // 排除 null 值字段
 public class CommonResponse<T> {

@@ -1,5 +1,6 @@
 package csu.yulin.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import csu.yulin.common.CommonResponse;
 import csu.yulin.common.PageDTO;
@@ -17,6 +18,7 @@ import csu.yulin.util.IPFSUploader;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,7 +26,9 @@ import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * 凭证记录表Controller
@@ -47,8 +51,8 @@ public class VoucherController {
     /**
      * 创建凭证
      */
-    @PostMapping("/upload")
-    public CommonResponse<VoucherDTO> createVoucher(@RequestParam("file") MultipartFile file,
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public CommonResponse<VoucherDTO> createVoucher(@RequestPart("file") MultipartFile file,
                                                     @RequestParam("projectId") Long projectId,
                                                     @RequestParam("orgId") Long orgId) throws IOException {
         // 参数校验
@@ -120,7 +124,7 @@ public class VoucherController {
 
             return CommonResponse.success("凭证创建成功", voucherDTO);
         } catch (Exception e) {
-            
+
             log.error("凭证创建失败: projectId={}, orgId={}, error={}", projectId, orgId, e.getMessage());
             throw new BusinessException(ResultCode.INTERNAL_SERVER_ERROR, "凭证创建失败: " + e.getMessage());
         }
@@ -199,4 +203,36 @@ public class VoucherController {
             throw new BusinessException(ResultCode.INTERNAL_SERVER_ERROR, "查询凭证失败: " + e.getMessage());
         }
     }
+
+    /**
+     * 根据项目ID查询凭证列表
+     */
+    @GetMapping("/by-project/{projectId}")
+    public CommonResponse<List<VoucherDTO>> getVouchersByProjectId(@PathVariable("projectId") Long projectId) {
+        // 参数校验
+        AssertUtil.notNull(projectId, ResultCode.BAD_REQUEST, "项目ID不能为空");
+
+        try {
+            // 查询凭证列表
+            List<Voucher> vouchers = voucherService.list(
+                    new LambdaQueryWrapper<Voucher>()
+                            .eq(Voucher::getProjectId, projectId)
+            );
+
+            AssertUtil.notEmpty(vouchers, ResultCode.NOT_FOUND, "暂无相关凭证");
+
+            // 转换为 DTO 列表
+            List<VoucherDTO> voucherDTOList = vouchers.stream()
+                    .map(VoucherConverter::toDTO)
+                    .collect(Collectors.toList());
+
+            log.info("查询凭证成功: projectId={}, 共{}条", projectId, voucherDTOList.size());
+
+            return CommonResponse.success("查询凭证成功", voucherDTOList);
+        } catch (Exception e) {
+            log.error("查询凭证失败: projectId={}, error={}", projectId, e.getMessage());
+            throw new BusinessException(ResultCode.INTERNAL_SERVER_ERROR, "查询凭证失败: " + e.getMessage());
+        }
+    }
+
 }
